@@ -131,33 +131,66 @@ static const channel_def_t channels_af1[] = {
     { 1546178430.0, CHAN_AERO_8400, 27 },
 };
 
+/* I4-AF2 (84E, MOR/IOR-East) -- Middle East / Asia-Pacific fringe
+ * Frequencies from SDRReceiver 84E config. No STD-C EGC confirmed --
+ * placeholder freq used; verify against live signal. */
+static const channel_def_t channels_af2[] = {
+    /* STD-C EGC -- UNVERIFIED placeholder, confirm before use */
+    { 1537950000.0, CHAN_STDC_EGC,   0 },
+
+    /* Aero 600 baud channels */
+    { 1545005000.0, CHAN_AERO_600,  1 },
+    { 1545080000.0, CHAN_AERO_600,  2 },
+    { 1545085000.0, CHAN_AERO_600,  3 },
+    { 1545090000.0, CHAN_AERO_600,  4 },
+    { 1545160000.0, CHAN_AERO_600,  5 },
+    { 1545165000.0, CHAN_AERO_600,  6 },
+    { 154518500.0, CHAN_AERO_600,  7 },
+    { 1545190000.0, CHAN_AERO_600,  8 },
+
+    /* Aero 10500 baud channels */
+    { 1546045000.0, CHAN_AERO_10500,  9 },
+    { 1546095000.0, CHAN_AERO_10500, 10 },
+    { 1546110000.0, CHAN_AERO_10500, 11 },
+    { 1546125000.0, CHAN_AERO_10500, 12 },
+};
+
 /* I4-F1 (143.5E, POR) -- Pacific Ocean
- * Frequencies from RadioReference forums + sigidwiki Inmarsat Aero listings. */
+ * Frequencies from live-measured pipeline config (inmarsat_aero_6/12/105).
+ * Updated from round-number placeholders; three additional 600 baud channels
+ * (1545160300, 1545165300, 1545200350) and two additional 10500 baud channels
+ * (1546050000, 1546085000) added vs previous table. */
 static const channel_def_t channels_f1[] = {
     { 1541450000.0, CHAN_STDC_EGC,   0 },
 
     /* Aero 600 baud channels */
-    { 1545025000.0, CHAN_AERO_600,  1 },
-    { 1545030000.0, CHAN_AERO_600,  2 },
-    { 1545035000.0, CHAN_AERO_600,  3 },
-    { 1545040000.0, CHAN_AERO_600,  4 },
-    { 1545045000.0, CHAN_AERO_600,  5 },
-    { 1545055000.0, CHAN_AERO_600,  6 },
-    { 1545095000.0, CHAN_AERO_600,  7 },
-    { 1545135000.0, CHAN_AERO_600,  8 },
-    { 1545140000.0, CHAN_AERO_600,  9 },
-    { 1545145000.0, CHAN_AERO_600, 10 },
-    { 1545150000.0, CHAN_AERO_600, 11 },
-    { 1545155000.0, CHAN_AERO_600, 12 },
-    { 1545180000.0, CHAN_AERO_600, 13 },
-    { 1545210000.0, CHAN_AERO_600, 14 },
+    { 1545005200.0, CHAN_AERO_600,  1 },
+    { 1545025170.0, CHAN_AERO_600,  2 },
+    { 1545030100.0, CHAN_AERO_600,  3 },
+    { 1545035135.0, CHAN_AERO_600,  4 },
+    { 1545040200.0, CHAN_AERO_600,  5 },
+    { 1545045100.0, CHAN_AERO_600,  6 },
+    { 1545095200.0, CHAN_AERO_600,  7 },
+    { 1545135200.0, CHAN_AERO_600,  8 },
+    { 1545140380.0, CHAN_AERO_600,  9 },
+    { 1545145360.0, CHAN_AERO_600, 10 },
+    { 1545150360.0, CHAN_AERO_600, 11 },
+    { 1545155300.0, CHAN_AERO_600, 12 },
+    { 1545160300.0, CHAN_AERO_600, 13 },
+    { 1545165300.0, CHAN_AERO_600, 14 },
+    { 1545180440.0, CHAN_AERO_600, 15 },
+    { 1545200350.0, CHAN_AERO_600, 16 },
+    { 1545210200.0, CHAN_AERO_600, 17 },
 
     /* Aero 1200 baud channels */
-    { 1545070000.0, CHAN_AERO_1200, 15 },
+    { 1545070250.0, CHAN_AERO_1200, 18 },
 
     /* Aero 10500 baud channels */
-    { 1546005000.0, CHAN_AERO_10500, 16 },
-    { 1546035000.0, CHAN_AERO_10500, 17 },
+    { 1546005000.0, CHAN_AERO_10500, 19 },
+    { 1546035000.0, CHAN_AERO_10500, 20 },
+    { 1546050000.0, CHAN_AERO_10500, 21 },
+    { 1546070000.0, CHAN_AERO_10500, 22 },
+    { 1546085000.0, CHAN_AERO_10500, 23 },
 };
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
@@ -216,6 +249,17 @@ static const satellite_t satellites[] = {
         .preferred_rate_hackrf  = 6000000.0,
     },
     {
+        .name = "I4-AF2",
+        .designator = "AF2",
+        .position = 84.0,
+        .region = "MOR",
+        .stdc_egc_freq = 1537950000.0,   /* UNVERIFIED placeholder */
+        .channels = channels_af2,
+        .num_channels = ARRAY_SIZE(channels_af2),
+        .freq_min = 1537950000.0,
+        .freq_max = 1546123000.0,
+    },
+    {
         .name = "I4-F1",
         .designator = "F1",
         .position = 143.5,
@@ -224,7 +268,7 @@ static const satellite_t satellites[] = {
         .channels = channels_f1,
         .num_channels = ARRAY_SIZE(channels_f1),
         .freq_min = 1541450000.0,
-        .freq_max = 1546150000.0,
+        .freq_max = 1546085000.0,
     },
 };
 
@@ -239,9 +283,10 @@ const satellite_t *satellite_lookup(const char *designator) {
         { "98W",      "4F3" },  /* Inmarsat 4-F3 Americas */
         { "54W",      "3F5" },  /* Inmarsat 3-F5 Atlantic */
         { "25E",      "AF1" },  /* Alphasat / I-4A F4 EMEA */
-        { "AF4",      "AF1" },  /* canonical — Inmarsat designates as I-4A F4 */
+        { "AF4",      "AF1" },  /* canonical -- Inmarsat designates as I-4A F4 */
         { "4AF4",     "AF1" },
         { "alphasat", "AF1" },
+        { "84E",      "AF2" },  /* Inmarsat 4-AF2 Middle East */
         { "143E",     "F1"  },  /* Inmarsat 4-F1 Pacific */
         { "143.5E",   "F1"  },
         { "4F1",      "F1"  },
