@@ -95,7 +95,9 @@ static const channel_def_t channels_af1[] = {
     /* STD-C EGC NCS */
     { 1537100000.0, CHAN_STDC_EGC,   0 },
 
-    /* Aero-L 600 P-channels (Fucino IT) */
+    /* Aero-L 600 P-channels (Fucino IT) — ch12 is the PSMC1 management
+     * channel; report from #21 (lmb56) confirms it carries 600-baud P-ch. */
+    { 1545115000.0, CHAN_AERO_600, 12 },
     { 1545120000.0, CHAN_AERO_600,  1 },
     { 1545130000.0, CHAN_AERO_600,  2 },
 

@@ -60,6 +60,7 @@ cd inmarsat-sniffer
 mkdir build && cd build
 cmake ..
 make -j$(nproc)
+sudo make install   # installs as /usr/local/bin/inmarsat-sniffer; skip and use ./inmarsat-sniffer if you'd rather not install system-wide
 ```
 
 CMake auto-detects available backends. All should show "enabled".
@@ -101,6 +102,7 @@ sudo apt install libmosquitto-dev
 mkdir build && cd build
 cmake ..
 make -j$(nproc)
+sudo make install   # installs as /usr/local/bin/inmarsat-sniffer; skip and use ./inmarsat-sniffer if you'd rather not install system-wide
 ```
 
 ### macOS (Homebrew)
