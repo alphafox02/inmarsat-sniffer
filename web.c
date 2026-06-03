@@ -355,7 +355,9 @@ static const char HTML_PAGE[] =
 "#side{position:absolute;right:0;top:44px;bottom:0;width:320px;\n"
 "  background:rgba(15,23,42,0.92);border-left:1px solid #334155;\n"
 "  font-size:11px;display:flex;flex-direction:column;\n"
-"  font-family:'SF Mono',Consolas,monospace;color:#cbd5e1;z-index:400}\n"
+"  font-family:'SF Mono',Consolas,monospace;color:#cbd5e1;z-index:400;\n"
+"  transition:width 0.15s ease-out}\n"
+"#side.wide{width:min(720px,75vw)}\n"
 "#tabs{display:flex;border-bottom:1px solid #334155;flex-shrink:0}\n"
 ".tab{flex:1;padding:6px 0;text-align:center;font-size:10px;cursor:pointer;\n"
 "  color:#64748b;text-transform:uppercase;letter-spacing:1px;font-weight:600;\n"
@@ -433,7 +435,7 @@ static const char HTML_PAGE[] =
 "      <button id=\"spec-auto\" onclick=\"resetTune()\" style=\"background:#334155;color:#e2e8f0;border:1px solid #475569;border-radius:3px;padding:2px 8px;cursor:pointer;font-size:11px;margin-left:auto\">Auto (AFC)</button>\n"
 "    </div>\n"
 "    <div style=\"font-size:10px;color:#64748b;margin-bottom:4px\">Waterfall \\u2014 newest at top, time scrolls down. Click to retune (disables AFC). Triangle marks the current demod tune.</div>\n"
-"    <canvas id=\"spec-canvas\" width=\"512\" height=\"180\" style=\"width:100%;height:180px;background:#0b1220;border:1px solid #334155;border-radius:4px;cursor:crosshair;display:block\"></canvas>\n"
+"    <canvas id=\"spec-canvas\" width=\"1024\" height=\"180\" style=\"width:100%;height:180px;background:#0b1220;border:1px solid #334155;border-radius:4px;cursor:crosshair;display:block\"></canvas>\n"
 "    <div style=\"font-size:10px;color:#64748b;margin:10px 0 4px 0\">Constellation \\u2014 post-matched-filter I/Q points. Tight clusters = locked, smear = not.</div>\n"
 "    <canvas id=\"const-canvas\" width=\"260\" height=\"260\" style=\"width:100%;max-width:260px;aspect-ratio:1/1;background:#0b1220;border:1px solid #334155;border-radius:4px;display:block;margin:0 auto\"></canvas>\n"
 "  </div>\n"
@@ -446,6 +448,10 @@ static const char HTML_PAGE[] =
 "  panes.forEach(function(p){p.classList.remove('active')});"
 "  document.querySelector('.tab[onclick*=\"'+name+'\"]').classList.add('active');"
 "  document.getElementById('tab-'+name).classList.add('active');"
+/* Widen the side panel only while the Spectrum tab is active so narrow
+ * MSK signals get enough horizontal pixels to be clickable. */
+"  var side=document.getElementById('side');"
+"  if(side){if(name==='spectrum')side.classList.add('wide');else side.classList.remove('wide')}"
 "  if(name==='spectrum'){startSpectrum()}else{stopSpectrum()}"
 "}\n"
 
