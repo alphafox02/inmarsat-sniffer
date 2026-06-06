@@ -91,7 +91,8 @@ git clone https://github.com/szpajder/libacars.git /tmp/libacars
 cd /tmp/libacars && mkdir build && cd build
 cmake .. && make -j$(nproc) && sudo make install
 sudo ldconfig
-cd -  # back to inmarsat-sniffer
+# cd -  # back to inmarsat-sniffer
+cd "$OLDPWD"  # back to inmarsat-sniffer - untested. But better than cd -
 
 # Optional: ZMQ audio output for external JAERO
 sudo apt install libzmq3-dev
