@@ -71,6 +71,8 @@ extern int web_enabled;
 #ifdef HAVE_ZMQ
 extern int zmq_enabled;
 extern int zmq_base_port;
+extern int iq_zmq_enabled;
+extern int iq_zmq_port;
 #endif
 extern int web_port;
 extern int feed_enabled;
@@ -149,7 +151,7 @@ static void usage(int exitcode) {
 "                             stdc/full are experimental — STD-C decode not yet\n"
 "                             verified on-air. auto picks based on SDR bandwidth.\n"
 "    --skip-c-channel        skip OQPSK 8400 C-channel demods (voice/data bursts,\n"
-"                             rarely carry ACARS; saves ~50% CPU on low-power hosts)\n"
+"                             rarely carry ACARS; saves ~50%% CPU on low-power hosts)\n"
 "    --oqpsk-lockingbw=HZ    AFC search/pull-in bandwidth for OQPSK 10500 (default 10500).\n"
 "                             Try 20000-30000 if you see SDRReceiver+JAERO locking carriers\n"
 "                             that we don't (means drifted from nominal channel centres).\n"
@@ -161,6 +163,7 @@ static void usage(int exitcode) {
 "                             click-to-tune). Implies --web.\n"
 "    --feed                  output JSON lines to stdout\n"
 "    --jaero-format[=HOST:PORT] JAERO text format 3 (stderr, or UDP if endpoint given)\n"
+"    --iq-zmq[=PORT]         publish raw tuned IQ as ZMQ cf32 (default port 5555)\n"
 "    --udp=HOST:PORT         send JSON messages via UDP (repeatable, max 4)\n"
 "    --basestation[=ENDPOINT] SBS (MSG,3) aircraft feed — PORT for server\n"
 "                             (default 30003), HOST:PORT to push to remote\n"
@@ -244,6 +247,7 @@ void parse_options(int argc, char **argv) {
         OPT_SDRPLAY_GAIN,
         OPT_VITA49,
         OPT_ZMQ,
+        OPT_IQ_ZMQ,
         OPT_BASESTATION,
         OPT_AIRCRAFT_DB,
         OPT_UPDATE_DB,
@@ -283,6 +287,7 @@ void parse_options(int argc, char **argv) {
         { "spectrum",           no_argument,       NULL, OPT_SPECTRUM },
         { "feed",               no_argument,       NULL, OPT_FEED },
         { "zmq",                optional_argument, NULL, OPT_ZMQ },
+        { "iq-zmq",             optional_argument, NULL, OPT_IQ_ZMQ },
         { "udp",                required_argument, NULL, OPT_UDP },
         { "soapy-gain",         required_argument, NULL, OPT_SOAPY_GAIN },
         { "soapy-gain-element", required_argument, NULL, OPT_SOAPY_GAIN_ELEM },
@@ -482,6 +487,16 @@ void parse_options(int argc, char **argv) {
             zmq_enabled = 1;
             if (optarg)
                 zmq_base_port = atoi(optarg);
+#else
+            errx(1, "ZMQ support not compiled in (install libzmq-dev)");
+#endif
+            break;
+
+        case OPT_IQ_ZMQ:
+#ifdef HAVE_ZMQ
+            iq_zmq_enabled = 1;
+            if (optarg)
+                iq_zmq_port = atoi(optarg);
 #else
             errx(1, "ZMQ support not compiled in (install libzmq-dev)");
 #endif
@@ -688,8 +703,18 @@ void parse_options(int argc, char **argv) {
     if (in_filename && live)
         errx(1, "Cannot use both -f and -i");
 
-    if (live && !satellite_name)
-        errx(1, "--satellite is required for live capture");
+    if (live && !satellite_name) {
+#ifdef HAVE_ZMQ
+        if (!(iq_zmq_enabled && center_freq > 0 && samp_rate > 0))
+#endif
+            errx(1, "--satellite is required for live capture unless "
+                    "--iq-zmq is used with -c and -r");
+    }
+
+#ifdef HAVE_ZMQ
+    if (iq_zmq_enabled && samp_rate <= 0 && !satellite_name)
+        errx(1, "--iq-zmq without --satellite needs -r/--sample-rate");
+#endif
 
     /* Open input file */
     if (in_filename) {

@@ -29,6 +29,7 @@ Sister project to [iridium-sniffer](https://github.com/alphafox02/iridium-sniffe
 - Non-blocking I/O on every decode-path sink (stdout JSON, stderr, UDP, ZMQ, MQTT) so a stalled downstream consumer drops messages instead of freezing decode
 - Two-stage channelizer with per-channel digital gain
 - 125-tap Hilbert USB demod on both internal decode and ZMQ output paths (matches SDRReceiver's `vfo::usb_demod()` math; inner loop optimised from 125 to 31 multiplies via antisymmetric zero-tap pairing)
+- Raw tuned-IQ ZMQ output (`--iq-zmq`) for external tools that want the receiver's current center frequency and sample rate as complex float32 IQ
 - Startup auto-calibration for SDR crystal offset (measures carrier error on first active channel, adjusts center freq)
 - Aircraft database (568k entries from tar1090-db) for AES/registration-to-ICAO-hex lookup and type/operator enrichment in ACARS output
 - AVX2, SSE4.2, and NEON SIMD kernels with automatic runtime detection
@@ -218,6 +219,22 @@ inmarsat-sniffer -i rtl-0 --satellite=4F3 --udp=127.0.0.1:5555
 inmarsat-sniffer -i sdrplay --satellite=4F3 --jaero-format=127.0.0.1:5554
 ```
 
+### Raw IQ ZMQ
+
+```bash
+# Publish raw tuned IQ as multipart ZMQ: topic "IQ", uint32 rate,
+# uint64 sample sequence, then cf32 IQ payload.
+inmarsat-sniffer -i sdrplay -c 1543100000 -r 768000 --iq-zmq=5555
+
+# A subscriber that expects the IQ bytes in the final multipart field can use:
+python tools/decode_zmq.py tcp://127.0.0.1:5555 --topic IQ --sample-rate 768000
+```
+
+`--iq-zmq` is intentionally generic: it does not name a downstream decoder or
+change the samples. With `--satellite`, normal auto center/rate selection can
+still be used. Without `--satellite`, live capture needs explicit `-c` and
+`-r` so the SDR knows what frequency and bandwidth to receive.
+
 ### MQTT
 
 ```bash
@@ -304,8 +321,8 @@ SDR/file/VITA49 --> channelizer (two-stage DDC per channel, SIMD-accelerated)
                                                                                      |
                                                                +---------+-----------+----------+
                                                                |         |           |          |
-                                                          JSON feed    SBS/BS       MQTT    ZMQ audio
-                                                          (--feed)   (--basestation) (--mqtt)  (--zmq)
+                                                          JSON feed    SBS/BS       MQTT    ZMQ audio/IQ
+                                                          (--feed)   (--basestation) (--mqtt)  (--zmq/--iq-zmq)
                                                                |
                                                           Web dashboard (--web :8888)
 ```
