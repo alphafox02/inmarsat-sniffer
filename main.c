@@ -32,8 +32,11 @@
 
 #ifdef HAVE_ZMQ
 #include "zmq_audio.h"
+#include "zmq_iq.h"
 int zmq_enabled = 0;
 int zmq_base_port = 6001;
+int iq_zmq_enabled = 0;
+int iq_zmq_port = 5555;
 #endif
 
 #include "jaero_dsp/jaero_demod.h"
@@ -1313,6 +1316,10 @@ int main(int argc, char **argv) {
         if (zmq_audio_init(zmq_base_port) != 0)
             errx(1, "Failed to initialize ZMQ audio");
     }
+    if (iq_zmq_enabled) {
+        if (zmq_iq_init(iq_zmq_port) != 0)
+            errx(1, "Failed to initialize ZMQ IQ");
+    }
 #endif
 
     /* Look up satellite */
@@ -1645,6 +1652,9 @@ int main(int argc, char **argv) {
 
     /* Main processing loop */
     unsigned long status_interval = 0;
+#ifdef HAVE_ZMQ
+    uint64_t iq_zmq_sequence = 0;
+#endif
     while (running) {
         sample_buf_t *buf;
         int ret = blocking_queue_poll(&samples_queue, &buf);
@@ -1654,6 +1664,13 @@ int main(int argc, char **argv) {
             usleep(1000);
             continue;
         }
+
+#ifdef HAVE_ZMQ
+        if (iq_zmq_enabled) {
+            zmq_iq_send(buf, samp_rate, iq_zmq_sequence);
+            iq_zmq_sequence += buf->num;
+        }
+#endif
 
         if (channelizer) {
             /* Debug: print signal power every 500 buffers (verbose only) */
@@ -1750,6 +1767,8 @@ int main(int argc, char **argv) {
 #ifdef HAVE_ZMQ
     if (zmq_enabled)
         zmq_audio_cleanup();
+    if (iq_zmq_enabled)
+        zmq_iq_cleanup();
 #endif
 
     blocking_queue_destroy(&samples_queue);

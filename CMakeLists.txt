@@ -214,12 +214,15 @@ if(MOSQUITTO_LIB AND MOSQUITTO_INC)
     include_directories(${MOSQUITTO_INC})
 endif()
 
-# Optional ZMQ for JAERO-compatible audio output
+# Optional ZMQ for JAERO-compatible audio output and raw IQ output
 find_library(ZMQ_LIB zmq)
 find_path(ZMQ_INC zmq.h)
 if(ZMQ_LIB AND ZMQ_INC)
     set(ZMQ_FOUND TRUE)
-    list(APPEND SOURCES ${PROJECT_SOURCE_DIR}/zmq_audio.c)
+    list(APPEND SOURCES
+        ${PROJECT_SOURCE_DIR}/zmq_audio.c
+        ${PROJECT_SOURCE_DIR}/zmq_iq.c
+    )
     include_directories(${ZMQ_INC})
 endif()
 
@@ -257,9 +260,9 @@ endif()
 if(ZMQ_FOUND)
     target_link_libraries(inmarsat-sniffer PRIVATE ${ZMQ_LIB})
     target_compile_definitions(inmarsat-sniffer PRIVATE HAVE_ZMQ)
-    message(STATUS "ZMQ: enabled (JAERO audio output)")
+    message(STATUS "ZMQ: enabled (JAERO audio + raw IQ output)")
 else()
-    message(STATUS "ZMQ: not found (JAERO output disabled)")
+    message(STATUS "ZMQ: not found (ZMQ outputs disabled)")
 endif()
 
 if(RTLSDR_FOUND)
