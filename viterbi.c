@@ -148,13 +148,26 @@ void viterbi_free(viterbi_t *v) {
     v->path_history = NULL;
 }
 
-float viterbi_ber(uint32_t path_metric, int num_bits) {
+void viterbi_encode(const uint8_t *bits, int num_bits, uint8_t *syms_out) {
+    int state = 0;
+    for (int i = 0; i < num_bits; i++) {
+        int bit = (bits[i / 8] >> (7 - i % 8)) & 1;
+        int sym = encode_sym(state, bit);
+        syms_out[i * 2]     = (sym >> 1) & 1;
+        syms_out[i * 2 + 1] = sym & 1;
+        state = (state >> 1) | (bit << (K - 2));
+    }
+}
+
+float viterbi_ber(const uint8_t *bits, int num_bits, const int8_t *soft_syms) {
     if (num_bits <= 0) return 0.5f;
-    /* Approximate BER from path metric.
-     * Perfect decode: metric ~0. Random: metric ~127 * num_bits.
-     * Scale to [0, 0.5] range. */
-    float max_metric = 254.0f * num_bits;
-    float ber = (float)path_metric / max_metric;
-    if (ber > 0.5f) ber = 0.5f;
-    return ber;
+    uint8_t *syms = malloc((size_t)num_bits * 2);
+    if (!syms) return 0.5f;
+    viterbi_encode(bits, num_bits, syms);
+    int errors = 0;
+    for (int i = 0; i < num_bits * 2; i++)
+        if ((soft_syms[i] > 0) != syms[i])
+            errors++;
+    free(syms);
+    return (float)errors / (num_bits * 2);
 }

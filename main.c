@@ -322,7 +322,7 @@ static void chan_init_thread(jaero_chan_t *jc)
 #include "satellites.h"
 #include "options.h"
 #include "channelizer.h"
-#include "demod_dbpsk.h"
+#include "demod_bpsk.h"
 #include "stdc_decode.h"
 #include "aero_decode.h"
 
@@ -659,7 +659,7 @@ static void print_status(void) {
 
 /* ---- STD-C demod/decode chain ---- */
 
-static dbpsk_demod_t *stdc_demod = NULL;
+static bpsk_demod_t *stdc_demod = NULL;
 static stdc_decoder_t *stdc_decoder = NULL;
 static channelizer_t *channelizer = NULL;
 static int next_dynamic_channel_id = 100;
@@ -1061,7 +1061,7 @@ static void channel_output_cb(int channel_id, channel_type_t type,
 #endif
 
     if (type == CHAN_STDC_EGC && stdc_demod) {
-        dbpsk_demod_process(stdc_demod, samples, num_samples);
+        bpsk_demod_process(stdc_demod, samples, num_samples);
         return;
     }
 
@@ -1643,7 +1643,7 @@ int main(int argc, char **argv) {
                 double output_rate = channelizer_output_rate(channelizer, sat->channels[i].channel_id);
                 if (output_rate <= 0) output_rate = 19200.0;
                 stdc_decoder = stdc_decoder_create(stdc_message_cb, NULL);
-                stdc_demod = dbpsk_demod_create(output_rate, 1200.0,
+                stdc_demod = bpsk_demod_create(output_rate, 1200.0,
                                                   stdc_bits_cb, NULL);
                 if (stdc_demod && stdc_decoder)
                     fprintf(stderr, "STD-C EGC decoder: active\n");
@@ -1755,7 +1755,7 @@ int main(int argc, char **argv) {
 
     /* Destroy demods before decoders -- demod destroy flushes remaining
      * bits through the callback, which needs the decoder still alive. */
-    dbpsk_demod_destroy(stdc_demod);
+    bpsk_demod_destroy(stdc_demod);
     /* Stop all per-channel worker threads first so the ring is quiesced
      * before freeing the demods they're feeding. */
     for (int i = 0; i < num_jaero_chans; i++) {

@@ -136,7 +136,7 @@ typedef struct stdc_decoder stdc_decoder_t;
  * user: passed to callback */
 stdc_decoder_t *stdc_decoder_create(stdc_msg_cb_t cb, void *user);
 
-/* Feed soft bits from the DBPSK demodulator.
+/* Feed soft bits from the BPSK demodulator.
  * The decoder handles frame sync, deinterleaving, Viterbi decode,
  * descrambling, and message parsing internally. */
 void stdc_decoder_feed(stdc_decoder_t *d, const float *soft_bits,

@@ -1095,14 +1095,14 @@ static void process_frame(stdc_decoder_t *d, int inverted) {
     viterbi_t vit;
     int decoded_bits = STDC_DATA_SIZE / 2;  /* rate 1/2 */
     viterbi_init(&vit, decoded_bits);
-    uint32_t metric = viterbi_decode(&vit, d->deinterleaved, d->decoded);
+    viterbi_decode(&vit, d->deinterleaved, d->decoded);
     viterbi_free(&vit);
 
-    float ber = viterbi_ber(metric, decoded_bits);
+    float ber = viterbi_ber(d->decoded, decoded_bits, d->deinterleaved);
     atomic_fetch_add(&stat_stdc_ber_sum, (unsigned long)(ber * 10000));
     atomic_fetch_add(&stat_stdc_ber_count, 1);
-    if (ber > 0.35f) {
-        /* Too many errors, skip frame */
+    if (ber > 0.15f) {
+        /* Beyond what rate 1/2 k=7 can correct */
         return;
     }
 

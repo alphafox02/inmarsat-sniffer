@@ -42,8 +42,11 @@ uint32_t viterbi_decode(viterbi_t *v, const int8_t *soft_syms,
 /* Free decoder resources. */
 void viterbi_free(viterbi_t *v);
 
-/* Compute bit error rate estimate from Viterbi path metric.
- * Returns BER as a fraction (0.0 = perfect, 0.5 = noise). */
-float viterbi_ber(uint32_t path_metric, int num_bits);
+/* Encode packed bits (MSB first) to 0/1 symbol pairs (G1, G2). */
+void viterbi_encode(const uint8_t *bits, int num_bits, uint8_t *syms_out);
+
+/* Channel symbol error rate: re-encode decoded bits and compare against
+ * hard decisions of the received soft symbols. Independent of soft scale. */
+float viterbi_ber(const uint8_t *bits, int num_bits, const int8_t *soft_syms);
 
 #endif

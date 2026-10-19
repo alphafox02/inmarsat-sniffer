@@ -14,7 +14,7 @@ Sister project to [iridium-sniffer](https://github.com/alphafox02/iridium-sniffe
 - Up to 27-channel parallel demodulation with per-channel worker threads (varies by satellite: 4F3/AF1=27, F1=17, 3F5=14)
 - Aero 600/1200 baud MSK (P-channel continuous, via JAERO MskDemodulator + AeroL)
 - Aero 10500/8400 baud OQPSK (continuous OqpskDemodulator + AeroL)
-- STD-C EGC: DBPSK demod, Viterbi k=7 FEC, frame sync and message parsing
+- STD-C EGC: coherent BPSK demod, Viterbi k=7 FEC, frame sync and message parsing
 - ADS-C position extraction from binary ARINC 620 payloads (tags 7/9/10/14/15/18/19/20)
 - CPDLC (controller-pilot datalink) message surfacing via libacars
 - Three-tier position extraction: ADS-C binary, coordinate regex, waypoint DB (125k fixes)
@@ -308,7 +308,7 @@ Rough CPU on an i7-11800H (SDRplay @ 3.072 MHz):
 ```
 SDR/file/VITA49 --> channelizer (two-stage DDC per channel, SIMD-accelerated)
                         |
-                        +-- STD-C EGC --> DBPSK demod --> Viterbi k=7 --> frame parser
+                        +-- STD-C EGC --> BPSK demod  --> Viterbi k=7 --> frame parser
                         |
                         +-- Aero 600/1200 --> Hilbert USB --> JAERO MskDemodulator --+
                         |                                    (continuous MSK, AFC)   |
@@ -437,7 +437,7 @@ Pick `--ppm` if you want repeatable behavior across runs (auto-cal varies by ±5
 **Plumbed, awaiting traffic or verification:**
 
 - 8400 baud OQPSK C-channel -- continuous OqpskDemodulator wired, but 8400 channels are burst voice/data sessions and may be silent for extended periods. Skip with `--skip-c-channel` on low-power hosts
-- STD-C EGC decode -- DBPSK/Viterbi path active; hasn't synced in testing on 4F3 at author's location. May need stronger signal or different satellite. AF1 (25E) STD-C carrier corrected to 1537.100 MHz but untested on-air from here
+- STD-C EGC decode -- coherent BPSK demod verified against synthetic frames (`build/test_stdc`, decodes down to ~2 dB Es/N0 with +/-2 kHz offset) but not yet confirmed on-air. AF1 (25E) STD-C carrier is 1537.100 MHz
 - F1 (143°E) channel plan -- came from a forum listing, not cross-referenced against an authoritative source; no confirmation available from North America
 - HackRF on 4F3 -- decoding at default gains with bias tee; still characterising optimal gain staging
 
