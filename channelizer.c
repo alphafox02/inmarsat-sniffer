@@ -516,7 +516,7 @@ int channelizer_add_channel(channelizer_t *ch, double freq,
     return 0;
 }
 
-void channelizer_process(channelizer_t *ch, const float *samples,
+static void process_block(channelizer_t *ch, const float *samples,
                           int num_samples) {
     /*
      * Stage 1: for each input sample, NCO-mix and decimate into each
@@ -622,6 +622,19 @@ void channelizer_process(channelizer_t *ch, const float *samples,
                        cs->out_len, ch->user);
             cs->out_len = 0;
         }
+    }
+}
+
+/* Intermediate/output buffers hold 0.1 s; feed at most 0.05 s per pass so
+ * long input blocks (low-rate files) are not truncated. */
+void channelizer_process(channelizer_t *ch, const float *samples,
+                          int num_samples) {
+    int max_block = (int)(ch->samp_rate * 0.05);
+    if (max_block < 1) max_block = 1;
+    for (int off = 0; off < num_samples; off += max_block) {
+        int n = num_samples - off;
+        if (n > max_block) n = max_block;
+        process_block(ch, samples + (size_t)off * 2, n);
     }
 }
 
