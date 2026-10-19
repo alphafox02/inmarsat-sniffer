@@ -516,9 +516,21 @@ void push_samples(sample_buf_t *buf) {
 
 /* ---- Signal handler ---- */
 
-static void sig_handler(int sig) {
+/* Backends kill(self_pid) to wake main; only external signals count toward
+ * force-quit, so a hung SDR setup or teardown can still be interrupted. */
+static void sig_handler(int sig, siginfo_t *info, void *uctx) {
     (void)sig;
+    (void)uctx;
+    if (info && info->si_pid == self_pid) {
+        running = 0;
+        return;
+    }
+    if (!running)
+        _exit(130);
     running = 0;
+    static const char msg[] = "\nStopping (Ctrl-C again to force quit)\n";
+    ssize_t r = write(STDERR_FILENO, msg, sizeof(msg) - 1);
+    (void)r;
 }
 
 /* ---- File spewer thread ---- */
@@ -1412,6 +1424,18 @@ int main(int argc, char **argv) {
                 if (samp_rate < min_rate)
                     samp_rate = min_rate;
             }
+#ifdef HAVE_SDRPLAY
+            /* SDRplay: 10 MS/s max, widest IF filter is 8 MHz. */
+            if (sdrplay_serial != NULL) {
+                if (samp_rate > 10000000.0)
+                    samp_rate = 10000000.0;
+                if (span > 8000000.0)
+                    fprintf(stderr,
+                        "SDRplay: %.2f MHz channel span exceeds the 8 MHz IF filter;\n"
+                        "         edge channels will be weak or missing. Use --mode=aero.\n",
+                        span / 1e6);
+            }
+#endif
             if (verbose)
                 fprintf(stderr, "Auto sample rate: %.3f MHz (span %.3f MHz, %s)\n",
                         samp_rate / 1e6, span / 1e6,
@@ -1468,7 +1492,7 @@ int main(int argc, char **argv) {
             center_freq / 1e6, samp_rate / 1e6);
 
     /* Set up signal handler */
-    struct sigaction sa = { .sa_handler = sig_handler };
+    struct sigaction sa = { .sa_sigaction = sig_handler, .sa_flags = SA_SIGINFO };
     sigaction(SIGINT, &sa, NULL);
     sigaction(SIGTERM, &sa, NULL);
 

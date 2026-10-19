@@ -22,6 +22,7 @@
 #include <sdrplay_api.h>
 
 #include "sdr.h"
+#include "sdrplay.h"
 
 extern sig_atomic_t running;
 extern pid_t self_pid;
@@ -36,9 +37,40 @@ typedef struct {
     sdrplay_api_DeviceT device;
     sdrplay_api_DeviceParamsT *params;
     int opened;       /* API opened */
+    int locked;       /* device API locked */
     int selected;     /* device selected */
     int initialized;  /* streaming init'd */
 } sdrplay_ctx_t;
+
+/* Released at exit too: a device left selected wedges the API service and
+ * the next sdrplay_api_Open() blocks forever. */
+static sdrplay_ctx_t *active_ctx;
+
+static void teardown(sdrplay_ctx_t *ctx)
+{
+    if (ctx->initialized) {
+        ctx->initialized = 0;
+        sdrplay_api_Uninit(ctx->device.dev);
+    }
+    if (ctx->locked) {
+        ctx->locked = 0;
+        sdrplay_api_UnlockDeviceApi();
+    }
+    if (ctx->selected) {
+        ctx->selected = 0;
+        sdrplay_api_ReleaseDevice(&ctx->device);
+    }
+    if (ctx->opened) {
+        ctx->opened = 0;
+        sdrplay_api_Close();
+    }
+}
+
+static void teardown_at_exit(void)
+{
+    if (active_ctx)
+        teardown(active_ctx);
+}
 
 /* Select the best bandwidth enum for a given sample rate */
 static sdrplay_api_Bw_MHzT pick_bandwidth(double sr)
@@ -207,7 +239,11 @@ void *sdrplay_setup(const char *serial)
 
     sdrplay_ctx_t *ctx = calloc(1, sizeof(*ctx));
     if (!ctx) errx(1, "sdrplay: out of memory");
+    active_ctx = ctx;
+    atexit(teardown_at_exit);
 
+    fprintf(stderr, "sdrplay: opening API (if this hangs, restart the "
+            "SDRplay API service)\n");
     err = sdrplay_api_Open();
     if (err != sdrplay_api_Success)
         errx(1, "sdrplay: cannot open API: %s",
@@ -232,6 +268,7 @@ void *sdrplay_setup(const char *serial)
     if (err != sdrplay_api_Success)
         errx(1, "sdrplay: cannot lock API: %s",
              sdrplay_api_GetErrorString(err));
+    ctx->locked = 1;
 
     err = sdrplay_api_GetDevices(devices, &ndevs, SDRPLAY_MAX_DEVICES);
     if (err != sdrplay_api_Success || ndevs == 0)
@@ -266,6 +303,7 @@ void *sdrplay_setup(const char *serial)
     ctx->selected = 1;
 
     sdrplay_api_UnlockDeviceApi();
+    ctx->locked = 0;
 
     sdrplay_api_DebugEnable(ctx->device.dev, sdrplay_api_DbgLvl_Verbose);
 
@@ -376,13 +414,13 @@ void *sdrplay_setup(const char *serial)
 /* ---- Streaming thread ---- */
 void *sdrplay_stream_thread(void *arg)
 {
-    (void)arg;
-
     /* Streaming is already active from Init in setup.
      * Callbacks deliver samples directly via push_samples().
      * This thread just blocks until shutdown. */
     while (running)
         usleep(100000);
+
+    sdrplay_close(arg);
 
     running = 0;
     kill(self_pid, SIGINT);
@@ -396,18 +434,8 @@ void sdrplay_close(void *arg)
     sdrplay_ctx_t *ctx = (sdrplay_ctx_t *)arg;
     if (!ctx) return;
 
-    if (ctx->initialized) {
-        sdrplay_api_Uninit(ctx->device.dev);
-        ctx->initialized = 0;
-    }
-    if (ctx->selected) {
-        sdrplay_api_ReleaseDevice(&ctx->device);
-        ctx->selected = 0;
-    }
-    if (ctx->opened) {
-        sdrplay_api_Close();
-        ctx->opened = 0;
-    }
-
+    teardown(ctx);
+    if (active_ctx == ctx)
+        active_ctx = NULL;
     free(ctx);
 }
